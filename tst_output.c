@@ -74,6 +74,9 @@ tst_output_types tst_output_init(tst_output_stream * output, int rank,
 
   /* Now do the initialisation for the different stream types */
   switch (type) {
+	case TST_OUTPUT_TYPE_NONE:
+	  output->streamptr = NULL;
+	  break;
     case TST_OUTPUT_TYPE_STDERR:
       output->streamptr = stderr;
       break;
@@ -117,7 +120,7 @@ int tst_output_close(tst_output_stream * output) {
     }
   }
 #endif
-  if (output->isopen) {
+  if (TST_OUTPUT_TYPE_NONE || output->isopen) {
     switch (output->type) {
       case TST_OUTPUT_TYPE_LOGFILE:
         strcpy (output->filename,"");
@@ -152,8 +155,7 @@ int tst_output_printf(tst_output_stream * output,
     }
   }
 #endif
-
-  if ((output->isopen == 1) && (output->rank == tst_output_global_rank) && (error_level <= output->level)) {
+  if ((output->type != TST_OUTPUT_TYPE_NONE) && (output->isopen == 1) && (output->rank == tst_output_global_rank) && (error_level <= output->level)) {
     va_start(arglist, format);
     count = vfprintf (output->streamptr, format, arglist);
     fflush (output->streamptr);
