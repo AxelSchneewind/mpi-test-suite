@@ -16,4 +16,6 @@ option "num-threads" j "number of additional threads to execute the tests" int d
 option "report" r "level of detail for test report" values="summary","run","full" default="summary"
 option "execution-mode" x "level of correctness testing" values="disabled","strict","relaxed" default="relaxed"
 
+option "output" o "sets the output method for logging" values="stdout","stderr","none","logfile" default="none"
+
 option "list" l "list all available tests, communicators, datatypes and corresponding classes"
