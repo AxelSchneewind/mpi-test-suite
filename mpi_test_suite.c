@@ -15,6 +15,9 @@
 #include "cmdline.h"
 
 
+#include "stdarg.h"
+
+
 /****************************************************************************/
 /**                                                                        **/
 /**                     GLOBAL VARIABLES                                   **/
@@ -55,10 +58,24 @@ static int tst_tag_ub = 32767;
 /**                                                                        **/
 /****************************************************************************/
 
+void tst_error(MPI_Comm comm, int mpi_error, const char* error_message, ...)
+{
+	int rank;
+	MPI_Comm_rank(comm, &rank);
+
+	va_list args;
+
+	if (rank == 0) {
+		fprintf(stderr, error_message, args);
+		fprintf(stderr, "\n");
+	}
+	MPI_Abort(comm, mpi_error);
+}
+
 int tst_hash_value (const struct tst_env * env)
 {
-  return (env->comm * 65521 + /* Smallest prime smaller than 2^16 */
-          env->type * 32749  + /* Smallest prime smaller than 2^16 */
+  return (env->comm * 65521 + /* Largest prime smaller than 2^16 */
+          env->type * 32749  + /* Largest prime smaller than 2^15 */
           env->test) % tst_tag_ub;
 }
 

@@ -34,6 +34,7 @@ const char * tst_reports[] = {
 
 #ifdef HAVE_MPI2_THREADS
 extern int tst_thread_running (void);
+extern int tst_thread_get_num (void);
 #endif
 
 /****************************************************************************/
@@ -91,13 +92,11 @@ tst_output_types tst_output_init(tst_output_stream * output, int rank,
       va_end (arglist);
       output->streamptr = fopen(output->filename, "w+");
       if (output->streamptr == NULL) {
-        fprintf (stderr, "Error opening stream: Could not open output file.");
-        return 0;
+        tst_error(MPI_COMM_WORLD, MPI_ERR_IO, "Error opening stream: Could not open output file.");
       }
       break;
     default:
-      fprintf (stderr, "Error opening stream: Unknown stream type (%i).", type);
-      return TST_OUTPUT_TYPE_NONE;
+      tst_error(MPI_COMM_WORLD, MPI_ERR_IO, "Error opening stream: Unknown stream type(%i).", type);
       break;
   }
 

@@ -48,6 +48,8 @@
     exit (__local_error);                                               \
   } while(0)
 
+
+
 #define MPI_CHECK(x)                                                           \
   do {                                                                         \
     int __ret = (x);                                                           \
@@ -392,6 +394,9 @@ struct tst_thread_env_t; /* Just a forward declaration */
 /**                     EXPORTED FUNCTIONS                                 **/
 /**                                                                        **/
 /****************************************************************************/
+
+extern void tst_error(MPI_Comm comm, int mpi_error, const char* error_message, ...); 
+
 extern int tst_comm_cleanup (void);
 extern MPI_Comm tst_comm_getcomm (int comm);
 extern int tst_comm_getcommclass (int comm);

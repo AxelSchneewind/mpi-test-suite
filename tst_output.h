@@ -58,7 +58,7 @@ extern tst_output_stream tst_output;
 int tst_output_set_level(tst_output_stream *output, tst_report_types level);
 
 
-/** \brief Initialise the output dependent on the set parameters.
+/** \brief Initialise the output dependent on the set parameters. Aborts program on failure.
  *
  * \param[in,out] output  Pointer to output structure holding all output relevant information
  * \param[in] rank   rank of MPI process responsible for the output TST_OUTPUT_RANK_MASTER
@@ -66,7 +66,7 @@ int tst_output_set_level(tst_output_stream *output, tst_report_types level);
  * \param[in] type   Output type of the stream
  * \param[in] ...    Filename if the output will be written to a file
  *
- * \return  Success: output type of the opened output, Fail: TST_OUTPUT_TYPE_NONE
+ * \return  Success: output type of the opened output
  */
 tst_output_types tst_output_init(tst_output_stream *output, int rank,
     tst_report_types level, tst_output_types type, ...);
