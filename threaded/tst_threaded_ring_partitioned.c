@@ -71,7 +71,7 @@ int tst_threaded_ring_partitioned_init(struct tst_env *env)
 
 
 // busy wait until partition arrived, using exponential backoff with initial backoff time given.
-// returns 1 if the partition has arrived and 0 if waiting was interupted
+// returns 0 if the partition has arrived and 1 if waiting was interrupted
 static int wait_for_partition(MPI_Request *recv_request, int partition_num, useconds_t backoff_time)
 {
   int flag = 0;
@@ -80,7 +80,7 @@ static int wait_for_partition(MPI_Request *recv_request, int partition_num, usec
     MPI_CHECK(MPI_Parrived(*recv_request, partition_num, &flag));
   } while (flag == 0 && usleep((backoff_time = (backoff_time * 3) / 2)) == 0);
 
-  return flag;
+  return !flag;
 }
 
 int tst_threaded_ring_partitioned_run(struct tst_env *env)
@@ -113,6 +113,8 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
   }
   else
     ERROR(EINVAL, "tst_threaded_ring_partitioned cannot run with this kind of communicator");
+
+  int errors = 0;
 
   MPI_Datatype type = tst_type_getdatatype(env->type);
   MPI_Aint type_extent = tst_type_gettypesize(env->type);
@@ -174,7 +176,7 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
 
     if (recv_partition_num >= 0 && recv_partition_num < num_recv_partitions)
     {
-      wait_for_partition(recv_request, recv_partition_num, 512);
+      errors += wait_for_partition(recv_request, recv_partition_num, 512);
     }
   }
   else
@@ -182,7 +184,7 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
     if (send_partition_num >= 0 && send_partition_num < num_send_partitions)
     {
 	  if (recv_partition_num >= 0 && recv_partition_num < num_recv_partitions) {
-	  	wait_for_partition(recv_request, recv_partition_num, 128);
+	  	errors += wait_for_partition(recv_request, recv_partition_num, 128);
 	  }
 
       // simply copy data from input to output buffer
@@ -215,9 +217,9 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
 
   // check that data was transmitted correctly
   if (thread_num == TST_THREAD_MASTER)
-    return tst_test_checkstandardarray(env, env->recv_buffer, TST_RANK_MASTER);
+    return errors + tst_test_checkstandardarray(env, env->recv_buffer, TST_RANK_MASTER);
   else
-    return 0;
+    return errors;
 }
 
 int tst_threaded_ring_partitioned_cleanup(struct tst_env *env)

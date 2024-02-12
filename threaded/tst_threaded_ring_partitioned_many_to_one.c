@@ -75,7 +75,7 @@ int tst_threaded_ring_partitioned_many_to_one_init(struct tst_env *env)
 
 
 // busy wait until partition arrived, using exponential backoff with initial backoff time given.
-// returns 1 if the partition has arrived and 0 if waiting was interupted
+// returns 0 if the partition has arrived and 1 if waiting was interrupted
 static int wait_for_partition(MPI_Request *recv_request, int partition_num, useconds_t backoff_time)
 {
   int flag = 0;
@@ -84,7 +84,7 @@ static int wait_for_partition(MPI_Request *recv_request, int partition_num, usec
     MPI_CHECK(MPI_Parrived(*recv_request, partition_num, &flag));
   } while (flag == 0 && usleep((backoff_time = (backoff_time * 3) / 2)) == 0);
 
-  return flag;
+  return !flag;
 }
 
 int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
@@ -136,6 +136,8 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
             tst_global_rank, thread_num, comm_rank, comm_size,
             send_to, recv_from, env->tag);
 
+  int errors = 0;
+
   // number of partitions and values per partition
   int num_send_partitions = num_worker_threads;
   int num_recv_partitions = num_send_partitions / ratio_send_to_receive;
@@ -180,7 +182,7 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
 
     if (recv_partition_num >= 0 && recv_partition_num < num_recv_partitions)
     {
-      wait_for_partition(recv_request, recv_partition_num, 512);
+      errors += wait_for_partition(recv_request, recv_partition_num, 512);
     }
   }
   else
@@ -188,7 +190,7 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
     if (send_partition_num >= 0 && send_partition_num < num_send_partitions)
     {
 	  if (recv_partition_num >= 0 && recv_partition_num < num_recv_partitions) {
-	  	wait_for_partition(recv_request, recv_partition_num, 128);
+	  	errors += wait_for_partition(recv_request, recv_partition_num, 128);
 		for (int i = 1; i < ratio_send_to_receive; i++)
 			tst_thread_signal_send(send_partition_num + i);
 	  } else {
@@ -225,9 +227,9 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
 
   // check that data was transmitted correctly
   if (thread_num == TST_THREAD_MASTER)
-    return tst_test_checkstandardarray(env, env->recv_buffer, TST_RANK_MASTER);
+    return errors + tst_test_checkstandardarray(env, env->recv_buffer, TST_RANK_MASTER);
   else
-    return 0;
+    return errors;
 }
 
 int tst_threaded_ring_partitioned_many_to_one_cleanup(struct tst_env *env)
