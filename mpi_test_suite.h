@@ -926,6 +926,10 @@ extern int tst_threaded_ring_partitioned_many_to_one_init (struct tst_env * env)
 extern int tst_threaded_ring_partitioned_many_to_one_run (struct tst_env * env);
 extern int tst_threaded_ring_partitioned_many_to_one_cleanup (struct tst_env * env);
 
+extern int tst_threaded_ring_partitioned_get_status_init (struct tst_env * env);
+extern int tst_threaded_ring_partitioned_get_status_run (struct tst_env * env);
+extern int tst_threaded_ring_partitioned_get_status_cleanup (struct tst_env * env);
+
 #endif
 
 #endif /* __MPI_TESTSUITE_H__ */
