@@ -270,7 +270,9 @@ In order to integrate a new test, the programmer should
         int class;
         char * description;
         int run_with_comm;
+        int min_comm_size;
         tst_int64 run_with_type;
+        int mode;
         int needs_sync;
         int (*tst_init_func) (const struct tst_env * env);
         int (*tst_run_func) (const struct tst_env * env);

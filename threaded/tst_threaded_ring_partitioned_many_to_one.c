@@ -41,7 +41,8 @@ int tst_threaded_ring_partitioned_many_to_one_init(struct tst_env *env)
 
   // each partition contains env->values_num values
   MPI_Aint type_extent = tst_type_gettypesize(env->type);
-  size_t buffer_size = num_worker_threads * env->values_num * type_extent;
+  size_t buffer_count = num_worker_threads * env->values_num;
+  size_t buffer_size = buffer_count * type_extent;
 
   if (thread_num == TST_THREAD_MASTER)
   {
@@ -71,7 +72,7 @@ int tst_threaded_ring_partitioned_many_to_one_init(struct tst_env *env)
 
   // master thread of master rank initializes array values
   if (comm_rank == TST_RANK_MASTER && thread_num == TST_THREAD_MASTER)
-    tst_type_setstandardarray(env->type, num_worker_threads * env->values_num, env->send_buffer, comm_rank);
+    tst_type_setstandardarray(env->type, buffer_count, env->send_buffer, comm_rank);
 
   return 0;
 }
@@ -127,7 +128,6 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
   MPI_Request *send_request = &env->req_buffer[0];
   MPI_Request *recv_request = &env->req_buffer[1];
 
-  int num_threads = 1 + tst_thread_num_threads(); /* we have to add 1 for the master thread */
   int num_worker_threads = tst_thread_num_threads();
   int thread_num = tst_thread_get_num();
 
@@ -254,8 +254,10 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
   pthread_barrier_wait(&thread_barrier);
 
   // check that data was transmitted correctly
+  size_t buffer_count = num_worker_threads * env->values_num;
   if (thread_num == TST_THREAD_MASTER)
-    return tst_test_checkstandardarray(env, env->recv_buffer, TST_RANK_MASTER);
+    // return tst_test_checkstandardarray(env, env->recv_buffer, TST_RANK_MASTER);
+    return tst_type_checkstandardarray(env->type, buffer_count, env->recv_buffer, comm_rank);
   else
     return 0;
 }

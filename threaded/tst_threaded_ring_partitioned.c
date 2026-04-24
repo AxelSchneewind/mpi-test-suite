@@ -24,8 +24,6 @@
 
 static pthread_barrier_t thread_barrier;
 
-static int ratio_send_to_receive = 1;
-
 int tst_threaded_ring_partitioned_init(struct tst_env *env)
 {
   int comm_rank;
@@ -40,7 +38,8 @@ int tst_threaded_ring_partitioned_init(struct tst_env *env)
 
   // each partition contains env->values_num values
   MPI_Aint type_extent = tst_type_gettypesize(env->type);
-  size_t buffer_size = num_worker_threads * env->values_num * type_extent;
+  size_t buffer_count = num_worker_threads * env->values_num;
+  size_t buffer_size = buffer_count * type_extent;
 
   if (thread_num == TST_THREAD_MASTER)
   {
@@ -67,7 +66,7 @@ int tst_threaded_ring_partitioned_init(struct tst_env *env)
 
   // master thread of master rank initializes array values
   if (comm_rank == TST_RANK_MASTER && thread_num == TST_THREAD_MASTER)
-    tst_type_setstandardarray(env->type, num_worker_threads * env->values_num, env->send_buffer, comm_rank);
+    tst_type_setstandardarray(env->type, buffer_count, env->send_buffer, comm_rank);
 
   return 0;
 }
@@ -123,7 +122,6 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
   MPI_Request *send_request = &env->req_buffer[0];
   MPI_Request *recv_request = &env->req_buffer[1];
 
-  int num_threads = 1 + tst_thread_num_threads(); /* we have to add 1 for the master thread */
   int num_worker_threads = tst_thread_num_threads();
   int thread_num = tst_thread_get_num();
 
@@ -137,12 +135,12 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
 
   // number of partitions and values per partition
   int num_send_partitions = num_worker_threads;
-  int num_recv_partitions = num_send_partitions / ratio_send_to_receive;
+  int num_recv_partitions = num_send_partitions;
   int partition_size = env->values_num; // number of elements per send partition
 
   // partition numbers for this thread
   int send_partition_num = thread_num;
-  int recv_partition_num = (thread_num % ratio_send_to_receive == 0) ? thread_num / ratio_send_to_receive : -1;
+  int recv_partition_num = thread_num;
 
   // master thread does not work on any partitions
   if (thread_num == TST_THREAD_MASTER)
@@ -160,7 +158,7 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
 
     MPI_CHECK(MPI_Psend_init(env->send_buffer, num_send_partitions, partition_size, type, send_to,
                  0, comm, MPI_INFO_NULL, send_request));
-    MPI_CHECK(MPI_Precv_init(env->recv_buffer, num_recv_partitions, partition_size * ratio_send_to_receive, type, recv_from,
+    MPI_CHECK(MPI_Precv_init(env->recv_buffer, num_recv_partitions, partition_size, type, recv_from,
                  0, comm, MPI_INFO_NULL, recv_request));
 
     MPI_CHECK(MPI_Startall(2, env->req_buffer));
