@@ -138,10 +138,20 @@ int tst_threaded_ring_partitioned_no_parrived_run(struct tst_env *env)
               comm_rank, thread_num,
               send_to, recv_from, num_send_partitions, partition_size, type_extent);
 
-    MPI_CHECK(MPI_Psend_init(env->send_buffer, num_send_partitions, partition_size, type, send_to,
-                 0, comm, MPI_INFO_NULL, send_request));
-    MPI_CHECK(MPI_Precv_init(env->recv_buffer, num_recv_partitions, partition_size, type, recv_from,
-                 0, comm, MPI_INFO_NULL, recv_request));
+    if (comm_rank == TST_RANK_MASTER)
+    {
+    	MPI_CHECK(MPI_Psend_init(env->send_buffer, num_send_partitions, partition_size, type, send_to,
+    	             0, comm, MPI_INFO_NULL, send_request));
+    	MPI_CHECK(MPI_Precv_init(env->recv_buffer, num_recv_partitions, partition_size, type, recv_from,
+    	             0, comm, MPI_INFO_NULL, recv_request));
+    }
+    else 
+    {
+    	MPI_CHECK(MPI_Precv_init(env->recv_buffer, num_recv_partitions, partition_size, type, recv_from,
+    	             0, comm, MPI_INFO_NULL, recv_request));
+    	MPI_CHECK(MPI_Psend_init(env->send_buffer, num_send_partitions, partition_size, type, send_to,
+    	             0, comm, MPI_INFO_NULL, send_request));
+    }
 
     MPI_CHECK(MPI_Startall(2, env->req_buffer));
 
