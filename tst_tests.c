@@ -1378,6 +1378,14 @@ static struct tst_test tst_tests[] = {
 
 
 #ifdef HAVE_MPI4_PARTITIONED_P2P
+  {TST_CLASS_THREADED, "Threaded ring partitioned without Parrived",
+   TST_MPI_COMM_SELF | TST_MPI_INTRA_COMM,
+   1,
+   TST_MPI_ALL_C_TYPES,
+   TST_MODE_RELAXED,
+   TST_NONE,
+   &tst_threaded_ring_partitioned_no_parrived_init, &tst_threaded_ring_partitioned_no_parrived_run, &tst_threaded_ring_partitioned_no_parrived_cleanup},
+
   {TST_CLASS_THREADED, "Threaded ring partitioned",
    TST_MPI_COMM_SELF | TST_MPI_INTRA_COMM,
    1,
