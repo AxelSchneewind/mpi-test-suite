@@ -108,6 +108,8 @@ int tst_threaded_ring_partitioned_no_parrived_run(struct tst_env *env)
 
   MPI_Request *send_request = &env->req_buffer[0];
   MPI_Request *recv_request = &env->req_buffer[1];
+  MPI_Status *send_status = MPI_STATUS_IGNORE;
+  MPI_Status *recv_status = MPI_STATUS_IGNORE;
 
   int num_worker_threads = tst_thread_num_threads();
   int thread_num = tst_thread_get_num();
@@ -159,18 +161,22 @@ int tst_threaded_ring_partitioned_no_parrived_run(struct tst_env *env)
       // allow this partition to be sent
       MPI_CHECK(MPI_Pready(send_partition_num, *send_request));
     }
+    pthread_barrier_wait(&thread_barrier);
 
     if (thread_num == TST_THREAD_MASTER)
     {
-      MPI_CHECK(MPI_Wait(recv_request, &env->status_buffer[1]));
+      MPI_CHECK(MPI_Wait(send_request, send_status));
+      
+      MPI_CHECK(MPI_Wait(recv_request, recv_status));
     }
   }
   else
   {
     if (thread_num == TST_THREAD_MASTER)
     {
-      MPI_CHECK(MPI_Wait(recv_request, &env->status_buffer[1]));
+      MPI_CHECK(MPI_Wait(recv_request, recv_status));
     }
+    pthread_barrier_wait(&thread_barrier);
 
     if (send_partition_num >= 0 && send_partition_num < num_send_partitions)
     {
@@ -182,13 +188,17 @@ int tst_threaded_ring_partitioned_no_parrived_run(struct tst_env *env)
       // allow sending of this partition
       MPI_CHECK(MPI_Pready(send_partition_num, *send_request));
     }
+
+    pthread_barrier_wait(&thread_barrier);
+    if (thread_num == TST_THREAD_MASTER)
+    {
+      MPI_CHECK(MPI_Wait(send_request, send_status));
+    }
   }
 
   // wait until sends are done
   if (thread_num == TST_THREAD_MASTER)
   {
-    MPI_CHECK(MPI_Wait(send_request, &env->status_buffer[0]));
-
     if (comm_rank == TST_RANK_MASTER)
     {
       double time_final = MPI_Wtime();
