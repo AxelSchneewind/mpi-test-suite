@@ -80,6 +80,7 @@ static int wait_for_partition(MPI_Request *recv_request, int partition_num, usec
   do
   {
     MPI_CHECK(MPI_Parrived(*recv_request, partition_num, &flag));
+    if (backoff_time >= 1024 * 1024) backoff_time = 1024 * 1024;
   } while (flag == 0 && usleep((backoff_time = (backoff_time * 3) / 2)) == 0);
 
   return flag;
