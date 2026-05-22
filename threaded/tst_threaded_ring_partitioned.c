@@ -138,7 +138,6 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
   int num_send_partitions = num_worker_threads;
   int send_count = env->values_num;
 
-
   int num_recv_partitions = num_send_partitions;
   int recv_count = env->values_num; 
 
