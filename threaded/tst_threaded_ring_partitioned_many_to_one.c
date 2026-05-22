@@ -19,9 +19,9 @@
 
 #include <pthread.h>
 
-#define TST_RANK_MASTER 0
-
 #ifdef HAVE_MPI4_PARTITIONED_P2P
+
+#define TST_RANK_MASTER 0
 
 static pthread_barrier_t thread_barrier;
 
@@ -253,11 +253,9 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
 
   pthread_barrier_wait(&thread_barrier);
 
-  // check that data was transmitted correctly
-  size_t buffer_count = num_worker_threads * env->values_num;
+  // check that data was transmitted correctly (only for master rank)
   if (thread_num == TST_THREAD_MASTER)
-    // return tst_test_checkstandardarray(env, env->recv_buffer, TST_RANK_MASTER);
-    return tst_type_checkstandardarray(env->type, buffer_count, env->recv_buffer, comm_rank);
+    return tst_test_checkstandardarray(env, env->recv_buffer, TST_RANK_MASTER);
   else
     return 0;
 }
