@@ -135,8 +135,11 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
 
   // number of partitions and values per partition
   int num_send_partitions = num_worker_threads;
+  int send_count = env->values_num;
+
+
   int num_recv_partitions = num_send_partitions;
-  int partition_size = env->values_num; // number of elements per send partition
+  int recv_count = env->values_num; 
 
   // partition numbers for this thread
   int send_partition_num = thread_num;
@@ -154,11 +157,11 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
   {
     tst_output_printf(DEBUG_LOG, TST_REPORT_MAX,"(Rank:%i, Thread:%i) initializing send to %i and recv from %i with %i partitions of size %i*%i bytes\n",
               comm_rank, thread_num,
-              send_to, recv_from, num_send_partitions, partition_size, type_extent);
+              send_to, recv_from, num_send_partitions, send_count, type_extent);
 
-    MPI_CHECK(MPI_Psend_init(env->send_buffer, num_send_partitions, partition_size, type, send_to,
+    MPI_CHECK(MPI_Psend_init(env->send_buffer, num_send_partitions, send_count, type, send_to,
                  0, comm, MPI_INFO_NULL, send_request));
-    MPI_CHECK(MPI_Precv_init(env->recv_buffer, num_recv_partitions, partition_size, type, recv_from,
+    MPI_CHECK(MPI_Precv_init(env->recv_buffer, num_recv_partitions, recv_count, type, recv_from,
                  0, comm, MPI_INFO_NULL, recv_request));
 
     MPI_CHECK(MPI_Startall(2, env->req_buffer));
@@ -195,8 +198,8 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
     if (send_partition_num >= 0 && send_partition_num < num_send_partitions)
     {
       // simply copy data from input to output buffer
-      int begin_index = partition_size * send_partition_num * type_extent;
-      int size = partition_size * type_extent;
+      int begin_index = send_count * send_partition_num * type_extent;
+      int size = send_count * type_extent;
       memcpy(&env->send_buffer[begin_index], &env->recv_buffer[begin_index], size);
 
       // allow sending of this partition
@@ -222,7 +225,7 @@ int tst_threaded_ring_partitioned_run(struct tst_env *env)
 
   pthread_barrier_wait(&thread_barrier);
 
-  // check that data was transmitted correctly
+  // check that data was transmitted correctly (only for master rank)
   if (thread_num == TST_THREAD_MASTER)
     return tst_test_checkstandardarray(env, env->recv_buffer, TST_RANK_MASTER);
   else
