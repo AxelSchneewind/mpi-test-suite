@@ -195,16 +195,22 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
   }
   else
   {
+    if (recv_partition_num >= 0 && recv_partition_num < num_recv_partitions) 
+    {
+      wait_for_partition(recv_request, recv_partition_num, 128);
+
+      for (int i = send_partition_num + 1; i < (send_partition_num + ratio_send_to_receive); i++)
+      {
+        tst_thread_signal_send(i);
+      }
+    } 
+    else if (send_partition_num >= 0 && send_partition_num < num_send_partitions)
+    {
+      tst_thread_signal_wait(send_partition_num);
+    }
+
     if (send_partition_num >= 0 && send_partition_num < num_send_partitions)
     {
-	  if (recv_partition_num >= 0 && recv_partition_num < num_recv_partitions) {
-	  	wait_for_partition(recv_request, recv_partition_num, 128);
-		for (int i = 1; i < ratio_send_to_receive; i++)
-			tst_thread_signal_send(send_partition_num + i);
-	  } else {
-		tst_thread_signal_wait(send_partition_num);
-	  }
-
       // simply copy data from input to output buffer
       int begin_index = partition_size * send_partition_num * type_extent;
       int size = partition_size * type_extent;
