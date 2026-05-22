@@ -25,7 +25,7 @@
 
 static pthread_barrier_t thread_barrier;
 
-static int ratio_send_to_receive = 4;
+static int default_ratio_send_to_receive = 4;
 
 int tst_threaded_ring_partitioned_many_to_one_init(struct tst_env *env)
 {
@@ -141,9 +141,23 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
 
   // number of partitions and values per partition
   int num_send_partitions = num_worker_threads;
-  int num_recv_partitions = num_send_partitions / ratio_send_to_receive;
-  int partition_size = env->values_num; // number of elements per send partition
+  int send_count = env->values_num;
 
+  int ratio_send_to_receive = (num_send_partitions % default_ratio_send_to_receive == 0) ? default_ratio_send_to_receive : 1;
+
+  if (num_send_partitions % default_ratio_send_to_receive)
+  {
+    tst_output_printf(DEBUG_LOG, TST_REPORT_MAX, "cannot repartition %i * %i = %i into partitions of size %i\n",
+      num_send_partitions, send_count, num_send_partitions * send_count, ratio_send_to_receive * send_count
+    );
+
+    ratio_send_to_receive = 1;
+  }
+
+  // number of receive partitions has to divide number of send partitions or be a multiple of it
+  int num_recv_partitions = num_send_partitions / ratio_send_to_receive;
+  int recv_count = (send_count * num_send_partitions)/ num_recv_partitions;
+  
   // partition numbers for this thread
   int send_partition_num = thread_num;
   int recv_partition_num = (thread_num % ratio_send_to_receive == 0) ? thread_num / ratio_send_to_receive : -1;
@@ -162,11 +176,11 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
       "(Rank:%i, Thread:%i) initializing send to %i and recv from %i\n"
       "                     with %i send partitions of size %i*%i bytes\n"
       "                     and  %i recv partitions of size %i*%i bytes\n",
-        comm_rank, thread_num, send_to, recv_from, num_send_partitions, partition_size, type_extent, num_recv_partitions, partition_size * ratio_send_to_receive, type_extent);
+        comm_rank, thread_num, send_to, recv_from, num_send_partitions, send_count, type_extent, num_recv_partitions, recv_count, type_extent);
 
-    MPI_CHECK(MPI_Psend_init(env->send_buffer, num_send_partitions, partition_size, type, send_to,
+    MPI_CHECK(MPI_Psend_init(env->send_buffer, num_send_partitions, send_count, type, send_to,
                  0, comm, MPI_INFO_NULL, send_request));
-    MPI_CHECK(MPI_Precv_init(env->recv_buffer, num_recv_partitions, partition_size * ratio_send_to_receive, type, recv_from,
+    MPI_CHECK(MPI_Precv_init(env->recv_buffer, num_recv_partitions, recv_count, type, recv_from,
                  0, comm, MPI_INFO_NULL, recv_request));
 
     MPI_CHECK(MPI_Startall(2, env->req_buffer));
@@ -212,8 +226,8 @@ int tst_threaded_ring_partitioned_many_to_one_run(struct tst_env *env)
     if (send_partition_num >= 0 && send_partition_num < num_send_partitions)
     {
       // simply copy data from input to output buffer
-      int begin_index = partition_size * send_partition_num * type_extent;
-      int size = partition_size * type_extent;
+      int begin_index = send_count * send_partition_num * type_extent;
+      int size = send_count * type_extent;
       memcpy(&env->send_buffer[begin_index], &env->recv_buffer[begin_index], size);
 
       // allow sending of this partition
